@@ -217,7 +217,7 @@ void setup() {
     }
 
     // Display image if exists
-    const char* imagePath = "/EvilM5hub-240-135px.bmp";
+    const char* imagePath = "/logo.bmp";
     if (SPIFFS.exists(imagePath)) {
         Serial.println("Image file found, displaying image.");
 
