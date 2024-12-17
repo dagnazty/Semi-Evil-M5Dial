@@ -1,0 +1,55 @@
+name: Release Firmware
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install Arduino CLI
+      run: |
+        curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+        sudo mv bin/arduino-cli /usr/local/bin/
+        arduino-cli config init
+        arduino-cli core update-index
+
+    - name: Configure Arduino CLI
+      run: |
+        arduino-cli config set board_manager.additional_urls https://dl.espressif.com/dl/package_esp32_index.json
+        arduino-cli core install esp32:esp32
+
+    - name: Install Required Libraries
+      run: |
+        arduino-cli lib install M5Dial
+        arduino-cli lib install ArduinoJson
+        arduino-cli lib install USBHIDKeyboard
+        arduino-cli lib install Preferences
+        arduino-cli lib install SPIFFS
+
+    - name: Build Firmware
+      run: |
+        arduino-cli compile --fqbn esp32:esp32:esp32 Semi-Evil-M5Dial/src/Semi-Evil-M5Dial-v1-1-0.ino
+
+    - name: Upload Firmware Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: firmware
+        path: Semi-Evil-M5Dial/src/*.bin
+
+    - name: Create Release Asset
+      uses: softprops/action-gh-release@v1
+      with:
+        files: Semi-Evil-M5Dial/src/*.bin
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
