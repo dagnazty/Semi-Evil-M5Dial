@@ -1,33 +1,3 @@
-/*
-   Semi-Evil-M5Dial - WiFi Network Testing and Exploration Tool
-
-   Copyright (c) 2024 7h30th3r0n3
-
-   Permission is hereby granted, free of charge, to any person obtaining a copy
-   of this software and associated documentation files (the "Software"), to deal
-   in the Software without restriction, including without limitation the rights
-   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-   copies of the Software, and to permit persons to whom the Software is
-   furnished to do so, subject to the following conditions:
-
-   The above copyright notice and this permission notice shall be included in all
-   copies or substantial portions of the Software.
-
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-   SOFTWARE.
-
-   Disclaimer:
-   This tool, Semi-Evil-M5Dial, is developed for educational and ethical testing purposes only. 
-   Any misuse or illegal use of this tool is strictly prohibited. The creator of Semi-Evil-M5Dial 
-   assumes no liability and is not responsible for any misuse or damage caused by this tool. 
-   Users are required to comply with all applicable laws and regulations in their jurisdiction 
-   regarding network testing and ethical hacking.
-*/
 #include <SPIFFS.h>
 #include "M5Dial.h"
 #include <WiFi.h>
@@ -121,7 +91,7 @@ enum DisplayState {
 };
 DisplayState currentDisplayState = DISPLAY_NONE;
 
-// Forward declarations
+// Forward declarations of functions
 void drawMenu(int index);
 void returnToMainMenu();
 void stopAutoKarma();
@@ -129,6 +99,32 @@ void autoKarmaPacketSniffer(void* buf, wifi_promiscuous_pkt_type_t type);
 void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPDuration);
 void readFileToSerial(fs::FS &fs, const char *path);
 void executeKeystrokes(const char *filename);
+void startCaptivePortal();
+void handlePortalScreen();
+void setupWebServerRoutes();
+void handleFormSubmit();
+void logData(String data);
+void selectSSID();
+void startAutoKarma();
+void loopAutoKarma();
+void activateAPForAutoKarma(const char* ssid);
+void displayWaitingForProbe();
+void powerOffDevice();
+void drawSettingsMenu(int index);
+void handleSettingsScreen(long newPosition);
+void enterExecuteScriptScreen();
+void handleExecuteScriptScreen();
+void listTxtFiles(fs::FS &fs, const char *dirname);
+void drawScriptMenu(int index);
+void saveSSID(const String& newSSID);
+void saveSelectedSSID(const String& selectedSSID);
+String cleanSSID(String ssid);
+void drawListMenu(const char* items[], int itemCount, int index, uint16_t highlightColor, uint16_t textColor, uint16_t ringColor);
+void drawRing(uint16_t color);
+void centerText(const String &text, int16_t yOffset = 0);
+void displayAboutScreen();
+void adjustBrightness(long newPosition, long &brightnessOldPosition);
+void toggleMode();
 
 // Toggle Debug/HID Mode
 void toggleMode() {
@@ -174,7 +170,7 @@ void setup() {
     M5Dial.Display.setBrightness(screenBrightness);
     M5Dial.Display.setTextColor(WHITE);
     M5Dial.Display.setTextDatum(middle_center);
-    M5Dial.Display.setTextFont(&fonts::Orbitron_Light_32);
+    M5Dial.Display.setFont(&fonts::Orbitron_Light_32);
     M5Dial.Display.setTextSize(defaultTextSize);
 
     if (!SPIFFS.begin(true)) {
@@ -405,7 +401,7 @@ void drawRing(uint16_t color) {
 }
 
 // Utility function to center text on the display with a vertical offset
-void centerText(const String &text, int16_t yOffset = 0) {
+void centerText(const String &text, int16_t yOffset) {
     int16_t textWidth = M5Dial.Display.textWidth(text);
     int16_t x = (M5Dial.Display.width() - textWidth) / 2;
     int16_t y = (M5Dial.Display.height() / 2) + yOffset;
@@ -428,10 +424,10 @@ void displayAboutScreen() {
     M5Dial.Display.println("Semi-Evil-M5Dial");
 
     yPos += 30;
-    textWidth = M5Dial.Display.textWidth("Version: 1.1.0");
+    textWidth = M5Dial.Display.textWidth("Version: 1.2.0");
     xPos = (M5Dial.Display.width() - textWidth) / 2;
     M5Dial.Display.setCursor(xPos, yPos);
-    M5Dial.Display.println("Version: 1.1.0");
+    M5Dial.Display.println("Version: 1.2.0");
 
     yPos += 30;
     textWidth = M5Dial.Display.textWidth("By: 7h30th3r0n3");

