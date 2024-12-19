@@ -8,11 +8,11 @@
 
 </div>
 
-## Introduction
+## Introduction 🎉
 
 <div align="center">
 
-Welcome to **Semi-Evil M5Dial**! 🎉
+Welcome to **Semi-Evil M5Dial**!
 
 Unlock the full potential of your M5Dial device with our feature-rich firmware. Whether you're a developer, security enthusiast, or hobbyist, Semi-Evil-M5Dial empowers you with advanced tools such as WiFi captive portal management, SSID handling, Karma attacks, and BadUSB script execution. Dive in and transform your M5Dial into a versatile powerhouse!
 
@@ -22,15 +22,14 @@ Unlock the full potential of your M5Dial device with our feature-rich firmware. 
 
 - [Introduction](#introduction)
 - [Features](#features)
-- [Getting Started](#getting-started-🚀)
-- [Installation](#installation-🔧)
-- [Usage](#usage-🛠️)
+- [Setup & Installation 🚀🔧](#setup--installation-🚀🔧)
+- [Usage 🛠️](#usage-🛠️)
 - [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing-🤝)
-- [License](#license-📄)
+- [Contributing 🤝](#contributing-🤝)
+- [License 📄](#license-📄)
 - [Credits](#credits)
-- [Support & Contact](#support--contact-📬)
+- [Support & Contact 📬](#support--contact-📬)
 
 ## Features
 
@@ -40,49 +39,62 @@ Unlock the full potential of your M5Dial device with our feature-rich firmware. 
 - 💻 **BadUSB Integration:** Execute pre-defined USB HID scripts to automate keyboard inputs.
 - ⚙️ **Settings Menu:** Adjust screen brightness, toggle modes, enable verbose debugging, and more.
 
-## Getting Started 🚀
+## Setup & Installation 🚀🔧
 
-Follow these simple steps to get Semi-Evil M5Dial up and running on your M5Dial device:
+Follow these steps to get **Semi-Evil M5Dial** up and running on your M5Dial device using **PlatformIO**.
 
-1. **Clone the Repository:**  
-   ```bash
-   git clone https://github.com/dagnazty/Semi-Evil-M5Dial.git
-   ```
-2. **Install Dependencies:**  
-   Open the project in Arduino IDE and install the required libraries via the Library Manager.
-3. **Prepare SPIFFS Filesystem:**  
-   Create the `data` folder and add necessary files as detailed in the [Installation](#installation-🔧) section.
-4. **Upload Firmware:**  
-   Connect your M5Dial device and upload the firmware using Arduino IDE.
-5. **Configure and Enjoy:**  
-   Navigate through the menu on your device to configure settings and explore features.
+### Prerequisites
 
-## Installation 🔧
+- **PlatformIO IDE:** It's recommended to use [Visual Studio Code](https://code.visualstudio.com/) with the [PlatformIO extension](https://platformio.org/install/ide?install=vscode) installed.
+- **USB Cable:** A reliable USB cable to connect your M5Dial device to your computer.
+- **Git:** To clone the repository. Install [Git](https://git-scm.com/downloads) if you haven't already.
 
-### 1. Clone the Repository
+### Step 1: Clone the Repository
 
-Clone this repository to your local machine using Git:
+Open your terminal or command prompt and execute:
 
 ```bash
 git clone https://github.com/dagnazty/Semi-Evil-M5Dial.git
 ```
 
-### 2. Install Dependencies
+### Step 2: Open the Project in PlatformIO
 
-Open the `Semi-Evil-M5Dial` folder in the Arduino IDE. Navigate to **Sketch > Include Library > Manage Libraries** and install the following libraries:
+1. **Launch Visual Studio Code (VS Code):**
+   - Ensure you have the [PlatformIO extension](https://platformio.org/install/ide?install=vscode) installed.
 
-- **M5Dial**
-- **ArduinoJson**
-- **USBHIDKeyboard**
-- **Preferences**
-- **SPIFFS**
+2. **Open the Project:**
+   - Click on **File > Open Folder...** and select the cloned `Semi-Evil-M5Dial` directory.
 
-### 3. Prepare SPIFFS Filesystem
+3. **Wait for PlatformIO to Initialize:**
+   - PlatformIO will automatically detect the project configuration and initialize the environment.
 
-The firmware utilizes the SPIFFS filesystem to store configurations, SSIDs, logs, and scripts. Follow these steps:
+### Step 3: Install Dependencies
 
-1. **Create SPIFFS Folder:**
-   - In the root directory of the project, create or copy the folder named `data`.
+PlatformIO manages dependencies through the `platformio.ini` file. Ensure all required libraries are specified. The provided `platformio.ini` includes all necessary dependencies.
+
+### Step 4: Prepare the Filesystem (SPIFFS)
+
+The firmware utilizes the SPIFFS filesystem to store configurations, SSIDs, logs, and scripts.
+
+1. **Locate the `data/` Folder:**
+   - Ensure the `data/` folder is located at the **root of the project**, alongside the `src/` folder.
+
+   ```
+   Semi-Evil-M5Dial/
+   ├── include/
+   ├── lib/
+   ├── src/
+   │   └── main.cpp
+   ├── data/
+   │   ├── index.html
+   │   ├── doge.html
+   │   ├── SSID.json
+   │   ├── log.txt
+   │   ├── logo.bmp
+   │   └── test.txt
+   ├── platformio.ini
+   └── README.md
+   ```
 
 2. **Add Required Files:**
    - **Web Files:**
@@ -92,44 +104,46 @@ The firmware utilizes the SPIFFS filesystem to store configurations, SSIDs, logs
      - `SSID.json`: Stores the list of saved SSIDs.
      - `log.txt`: Stores logs collected via the captive portal.
    - **BadUSB Scripts:**
-     - Place your `.txt` script files in the root of the `data` folder. These scripts define the USB HID actions.
+     - Place your `.txt` script files in the `data/` folder. These scripts define the USB HID actions.
+   - **Images:**
+     - `logo.bmp`: Displayed upon device startup.
 
-3. **Sample File Structure:**
+3. **Upload SPIFFS to Device:**
+   - In VS Code, open the **PlatformIO Terminal** (`View > Terminal`).
+   - Execute the following command to upload the `data/` folder to the device's SPIFFS:
 
-    ```
-    Semi-Evil-M5Dial/
-    ├── Semi-Evil-M5Dial-v1-1-0.ino
-    └── data/
-        ├── index.html
-        ├── doge.html
-        ├── SSID.json
-        ├── log.txt
-        ├── logo.bmp
-        └── test.txt
-    ```
+     ```bash
+     pio run --target uploadfs
+     ```
 
-4. **Upload SPIFFS:**
-   - Install the **ESP32 Sketch Data Upload** tool from [here](https://github.com/esp8266/arduino-esp8266fs-plugin).
-   - In Arduino IDE, navigate to **Tools > ESP32 Sketch Data Upload** to upload the `data` folder to the SPIFFS.
+   - **Note:** Ensure your device is connected and recognized by your computer.
 
-### 4. Upload Firmware
+### Step 5: Upload Firmware to Device
 
-1. **Connect M5Dial:**
-   - Connect your M5Dial device to your computer via USB.
+After uploading the filesystem, proceed to flash the firmware.
 
-2. **Select Board and Port:**
-   - In Arduino IDE, go to **Tools > Board** and select the appropriate ESP32 board.
-   - Select the correct **Port** under **Tools > Port**.
+1. **Ensure the Device is in Bootloader Mode:**
+   - **Automatic Entry:** Most devices automatically enter bootloader mode when initiating a firmware upload.
+   - **Manual Entry:**
+     - Press and hold the **RESET** button.
+     - While holding **RESET**, plug the device in.
+     - Release the **RESET** button.
 
-3. **Upload Code:**
-   - Open `Semi-Evil-M5Dial-v1-1-0.ino`.
-   - Click the **Upload** button to compile and upload the firmware to the M5Dial.
+2. **Upload Firmware:**
+   - In the **PlatformIO Toolbar** at the bottom, click the **Upload** button (right arrow icon) or press `Ctrl + Alt + U`.
+   - PlatformIO will compile the project and flash the firmware to your device.
+   - **Progress Indicators:**
+     - Monitor the **Output** panel for upload progress and any potential errors.
+
+3. **Verify Successful Upload:**
+   - Upon completion, you should see a success message.
+   - The device will automatically reboot if **Auto Reboot** is enabled in `platformio.ini`.
 
 ## Usage 🛠️
 
 ### Navigating the Menu
 
-The M5Dial features a rotary encoder and a button (BtnA) for navigation:
+The M5Dial features a rotary encoder and a button (**BtnA**) for navigation:
 
 - **Rotate Encoder:** Scroll through menu items.
 - **Press BtnA:** Select the highlighted menu item.
@@ -193,7 +207,7 @@ To utilize the BadUSB feature:
      - `ALT <key>`
 
 2. **Add Scripts to SPIFFS:**
-   - Place your `.txt` script files in the `data` folder before uploading SPIFFS.
+   - Place your `.txt` script files in the `data/` folder before uploading SPIFFS.
 
 3. **Execute Scripts:**
    - Navigate to **BadUSB** in the main menu.
@@ -202,8 +216,9 @@ To utilize the BadUSB feature:
 ## Troubleshooting
 
 - **SPIFFS Upload Issues:**
-  - Ensure the `data` folder is correctly structured.
-  - Verify the **ESP32 Sketch Data Upload** tool is properly installed.
+  - Ensure the `data/` folder is correctly structured at the project root.
+  - Verify the **PlatformIO Core** is up-to-date and no duplicate installations exist.
+  - Check file permissions to ensure PlatformIO can access the directory and its files.
 
 - **Web Server Not Accessible:**
   - Confirm the device's AP is active and you're connected to the correct SSID.
@@ -220,6 +235,10 @@ To utilize the BadUSB feature:
 - **Device Not Responding:**
   - Perform a reset by disconnecting and reconnecting the USB cable.
   - Re-upload the firmware if necessary.
+
+- **PlatformIO Core Errors:**
+  - Ensure only one PlatformIO Core installation exists.
+  - Update PlatformIO Core to the latest version following the [PlatformIO Troubleshooting Guide](https://docs.platformio.org/en/latest/core/installation/troubleshooting.html).
 
 ## Contributing 🤝
 
