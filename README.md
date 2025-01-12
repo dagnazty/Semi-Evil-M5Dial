@@ -24,6 +24,7 @@ Unlock the full potential of your M5Dial device with our feature-rich firmware. 
 - [Features](#features)
 - [Setup & Installation 🚀🔧](#setup--installation-🚀🔧)
 - [Usage 🛠️](#usage-🛠️)
+- [Web-Based File Uploader](#web-based-file-uploader)
 - [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
 - [Contributing 🤝](#contributing-🤝)
@@ -38,6 +39,7 @@ Unlock the full potential of your M5Dial device with our feature-rich firmware. 
 - 🕵️‍♂️ **Karma Attack Mode:** Perform Karma attacks by spoofing SSIDs and capturing probe requests.
 - 💻 **BadUSB Integration:** Execute pre-defined USB HID scripts to automate keyboard inputs.
 - ⚙️ **Settings Menu:** Adjust screen brightness, toggle modes, enable verbose debugging, and more.
+- 🌐 **Web-Based File Uploader:** Easily upload and delete files on the device’s SPIFFS from a browser interface.
 
 ## Setup & Installation 🚀🔧
 
@@ -170,6 +172,24 @@ Upon powering up, the device displays a logo (if available) and navigates to the
 
 6. **Settings:**  
    Access and modify device settings such as screen brightness, toggle modes, and enable verbose debugging.
+
+## Web-Based File Uploader
+
+In addition to the captive portal, **Semi-Evil M5Dial** provides a **web-based uploader** for conveniently managing files on the device’s SPIFFS *without* needing to rebuild or re-upload via PlatformIO.
+
+1. **Start the Portal** (from the main menu) and connect to the device’s AP (e.g. `192.168.4.1`).
+2. **Navigate to `/upload`:**  
+   For example, open `http://192.168.4.1/upload` in your browser.
+3. **Use the “Device Control Panel”:**
+   - **Upload Files**: Click **“Upload Files”** to add new scripts, images, or JSON files to SPIFFS.
+   - **List & Delete**: See a list of uploaded files and delete them at the press of a button.
+
+### Typical Workflow
+
+- **Add** or **replace** your **BadUSB** scripts (`.txt` files), images (`.bmp`), or configuration (`.json`) files via `/upload`.
+- After uploading, the device automatically updates the SPIFFS file list, so you can immediately use or select new resources in the menus.
+
+**Note**: If your device is connected under a different IP or captive portal, adjust the URL accordingly (e.g., `http://<device-IP>/upload`).
 
 ## Configuration
 

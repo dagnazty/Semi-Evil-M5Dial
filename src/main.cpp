@@ -233,7 +233,7 @@ void setup() {
     {
         File file = SPIFFS.open("/selectedSSID.json", "r");
         if (file) {
-            StaticJsonDocument<256> doc;
+            JsonDocument doc;
             DeserializationError error = deserializeJson(doc, file);
             if (!error) {
                 String selectedSSID = doc["selectedSSID"].as<String>();
@@ -250,7 +250,7 @@ void setup() {
     {
         File file = SPIFFS.open("/SSID.json", "r");
         if (file) {
-            StaticJsonDocument<1024> doc;
+            JsonDocument doc;
             DeserializationError error = deserializeJson(doc, file);
             if (!error) {
                 ssidList.clear();
@@ -424,10 +424,10 @@ void displayAboutScreen() {
     M5Dial.Display.println("Semi-Evil-M5Dial");
 
     yPos += 30;
-    textWidth = M5Dial.Display.textWidth("Version: 1.2.0");
+    textWidth = M5Dial.Display.textWidth("Version: 1.3.0");
     xPos = (M5Dial.Display.width() - textWidth) / 2;
     M5Dial.Display.setCursor(xPos, yPos);
-    M5Dial.Display.println("Version: 1.2.0");
+    M5Dial.Display.println("Version: 1.3.0");
 
     yPos += 30;
     textWidth = M5Dial.Display.textWidth("By: 7h30th3r0n3");
@@ -471,8 +471,8 @@ void saveSSID(const String& newSSID) {
         return;
     }
 
-    StaticJsonDocument<1024> doc;
-    JsonArray array = doc.createNestedArray("ssids");
+    JsonDocument doc;
+    JsonArray array = doc["ssids"].to<JsonArray>();
     for (const auto& s : ssidList) {
         array.add(s);
     }
@@ -495,7 +495,7 @@ void saveSelectedSSID(const String& selectedSSID) {
         }
         return;
     }
-    StaticJsonDocument<256> doc;
+    JsonDocument doc;
     doc["selectedSSID"] = selectedSSID;
     if (serializeJson(doc, file) == 0 && debugMode && verboseDebug) {
         Serial.println("Failed to write selected SSID");
@@ -521,8 +521,21 @@ void startCaptivePortal() {
         Serial.println("Starting Captive Portal...");
     }
 
+    // Configure WiFi channel and SSID
     WiFi.mode(WIFI_AP_STA);
-    if (!WiFi.softAP(ssid.c_str(), password)) {
+    WiFi.setSleep(false); // Disable sleep for better reliability
+    WiFi.setTxPower(WIFI_POWER_19_5dBm); // Max power
+    
+    // Clean SSID to ASCII only
+    String cleanSSID = ssid;
+    cleanSSID.replace(" ", "_");
+    cleanSSID.replace("\"", "");
+    cleanSSID.replace("'", "");
+    cleanSSID.replace("\\", "");
+    cleanSSID.replace("/", "");
+    
+    // Start AP on channel 6 (commonly supported)
+    if (!WiFi.softAP(cleanSSID.c_str(), password, 6, 0, 4)) {
         if (debugMode && verboseDebug) {
             Serial.println("Failed to start AP, retrying...");
         }
@@ -530,12 +543,18 @@ void startCaptivePortal() {
         WiFi.mode(WIFI_STA);
         delay(500);
         WiFi.mode(WIFI_AP_STA);
-        if (!WiFi.softAP(ssid.c_str(), password)) {
+        if (!WiFi.softAP(cleanSSID.c_str(), password, 6, 0, 4)) {
             if (debugMode && verboseDebug) {
                 Serial.println("Failed to start AP after retry. Check config.");
             }
             return;
         }
+    }
+    
+    if (debugMode && verboseDebug) {
+        Serial.println("AP started with SSID: " + cleanSSID);
+        Serial.println("WiFi channel: 6");
+        Serial.println("Max connections: 4");
     }
 
     IPAddress myIP = WiFi.softAPIP();
@@ -558,12 +577,24 @@ void startCaptivePortal() {
     M5Dial.Display.println(ipText);
     drawRing(TFT_BLUE);
 
+    // Add captive portal redirect handler
+    server.on("/generate_204", HTTP_GET, []() {
+        server.sendHeader("Location", "http://" + WiFi.softAPIP().toString());
+        server.send(302);
+    });
+    
+    server.on("/hotspot-detect.html", HTTP_GET, []() {
+        server.sendHeader("Location", "http://" + WiFi.softAPIP().toString());
+        server.send(302);
+    });
+
     dnsServer.start(DNS_PORT, "*", myIP);
     setupWebServerRoutes();
     server.begin();
     isPortalRunning = true;
     if (debugMode && verboseDebug) {
         Serial.println("HTTP server started");
+        Serial.println("Captive portal active at http://" + myIP.toString());
     }
     currentScreen = PORTAL_SCREEN;
 }
@@ -610,44 +641,394 @@ void handlePortalScreen() {
 }
 
 void setupWebServerRoutes() {
-    server.on("/", HTTP_GET, []() {
-        File file = SPIFFS.open("/index.html", "r");
-        if (!file) {
-            if (debugMode && verboseDebug) {
-                Serial.println("File not found: /index.html");
+    server.on("/upload", HTTP_GET, []() {
+        // Hardcode the entire HTML as a raw string literal
+        // (Requires C++11 or later)
+        const char htmlPage[] = R"HTML(
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Device Control Panel</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+                margin: 0;
+                padding: 20px;
             }
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+            h1 {
+                color: #333;
+                text-align: center;
+            }
+            .section {
+                margin-bottom: 30px;
+            }
+            .file-upload {
+                border: 2px dashed #ccc;
+                padding: 20px;
+                text-align: center;
+                margin-bottom: 20px;
+            }
+            .controls {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 10px;
+            }
+            button {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 15px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+            }
+            button:hover {
+                background-color: #45a049;
+            }
+            .file-list {
+                margin-top: 20px;
+            }
+            .file-item {
+                display: flex;
+                justify-content: space-between;
+                padding: 10px;
+                border-bottom: 1px solid #eee;
+            }
+            .status {
+                margin-top: 20px;
+                padding: 15px;
+                background-color: #f8f8f8;
+                border-radius: 5px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Device Control Panel</h1>
+            
+            <div class="section">
+                <h2>File Management</h2>
+                <div class="file-upload">
+                    <input type="file" id="fileInput" multiple>
+                    <button onclick="uploadFiles()">Upload Files</button>
+                </div>
+                <div class="file-list" id="fileList">
+                    <!-- Files will be listed here -->
+                </div>
+            </div>
+
+        </div>
+
+        <script>
+            async function uploadFiles() {
+                const fileInput = document.getElementById('fileInput');
+                const files = fileInput.files;
+                const formData = new FormData();
+                
+                for (let i = 0; i < files.length; i++) {
+                    formData.append('files', files[i]);
+                }
+
+                try {
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        updateFileList();
+                        showStatus('Files uploaded successfully');
+                    } else {
+                        showStatus('Error uploading files');
+                    }
+                } catch (error) {
+                    showStatus('Upload failed: ' + error.message);
+                }
+            }
+
+            async function updateFileList() {
+                try {
+                    const response = await fetch('/files');
+                    const files = await response.json();
+                    const fileList = document.getElementById('fileList');
+                    fileList.innerHTML = files.map(file => `
+                        <div class="file-item">
+                            <span>${file.name}</span>
+                            <button onclick="deleteFile('${file.name}')">Delete</button>
+                        </div>
+                    `).join('');
+                } catch (error) {
+                    showStatus('Error fetching file list');
+                }
+            }
+
+            async function deleteFile(filename) {
+                try {
+                    // Call the query-param-based endpoint
+                    const response = await fetch(`/deleteFile?filename=${encodeURIComponent(filename)}`, {
+                    method: 'DELETE'
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                    updateFileList();
+                    showStatus('File deleted successfully');
+                    } else {
+                    showStatus('Error deleting file');
+                    }
+                } catch (error) {
+                    showStatus('Delete failed: ' + error.message);
+                }
+            }
+
+            async function sendCommand(command) {
+                try {
+                    const response = await fetch(`/command/${command}`, {
+                        method: 'POST'
+                    });
+                    const result = await response.json();
+                    showStatus(result.message || 'Command executed');
+                } catch (error) {
+                    showStatus('Command failed: ' + error.message);
+                }
+            }
+
+            function showStatus(message) {
+                const status = document.getElementById('statusMessage');
+                if (!status) {
+                    // If there's no status element in the HTML, you can do something else
+                    console.log('STATUS:', message);
+                    return;
+                }
+                status.textContent = message;
+                setTimeout(() => status.textContent = '', 3000);
+            }
+
+            // Initial file list load
+            updateFileList();
+        </script>
+    </body>
+    </html>
+    )HTML";
+
+        // Send the page to the client
+        server.send(200, "text/html", htmlPage);
+    });
+
+
+    // Serve static files from SPIFFS
+    server.onNotFound([]() {
+        // First check if the requested file exists
+        String path = server.uri();
+        if (path.endsWith("/")) {
+            path += "index.html";
+        }
+
+        if (SPIFFS.exists(path)) {
+            // Determine MIME type from file extension
+            String contentType = "text/plain";
+            if (path.endsWith(".html")) contentType = "text/html";
+            else if (path.endsWith(".css")) contentType = "text/css";
+            else if (path.endsWith(".js")) contentType = "application/javascript";
+            else if (path.endsWith(".png")) contentType = "image/png";
+            else if (path.endsWith(".jpg") || path.endsWith(".jpeg")) contentType = "image/jpeg";
+            else if (path.endsWith(".gif")) contentType = "image/gif";
+            else if (path.endsWith(".ico")) contentType = "image/x-icon";
+            else if (path.endsWith(".txt")) contentType = "text/plain";
+            else if (path.endsWith(".json")) contentType = "application/json";
+
+            File file = SPIFFS.open(path, "r");
+            if (!file) {
+                server.send(404, "text/plain", "File not found");
+                return;
+            }
+            server.streamFile(file, contentType);
+            file.close();
+            return;
+        }
+
+        server.send(404, "text/plain", "File not found");
+
+        // If you really need to do something with `server.uri()` after this,
+        // rename it to avoid redeclaration:
+        String path404 = server.uri();
+        if (path404.endsWith("/")) {
+            path404 += "index.html";
+        }
+
+        // Check if file exists
+        if (!SPIFFS.exists(path)) {
             server.send(404, "text/plain", "File not found");
             return;
         }
-        server.streamFile(file, "text/html");
-        file.close();
-    });
 
-    server.on("/doge.html", HTTP_GET, []() {
-        File file = SPIFFS.open("/doge.html", "r");
+        // Determine MIME type from file extension
+        String contentType = "text/plain";
+        if (path.endsWith(".html")) contentType = "text/html";
+        else if (path.endsWith(".css")) contentType = "text/css";
+        else if (path.endsWith(".js")) contentType = "application/javascript";
+        else if (path.endsWith(".png")) contentType = "image/png";
+        else if (path.endsWith(".jpg") || path.endsWith(".jpeg")) contentType = "image/jpeg";
+        else if (path.endsWith(".gif")) contentType = "image/gif";
+        else if (path.endsWith(".ico")) contentType = "image/x-icon";
+        else if (path.endsWith(".txt")) contentType = "text/plain";
+        else if (path.endsWith(".json")) contentType = "application/json";
+
+        File file = SPIFFS.open(path, "r");
         if (!file) {
-            if (debugMode && verboseDebug) {
-                Serial.println("File not found: /doge.html");
-            }
             server.send(404, "text/plain", "File not found");
             return;
         }
-        server.streamFile(file, "text/html");
+        server.streamFile(file, contentType);
         file.close();
     });
 
+    // Special handlers for captive portal redirects
+    server.on("/generate_204", HTTP_GET, []() {
+        server.sendHeader("Location", "http://" + WiFi.softAPIP().toString());
+        server.send(302);
+    });
+    
+    server.on("/hotspot-detect.html", HTTP_GET, []() {
+        server.sendHeader("Location", "http://" + WiFi.softAPIP().toString());
+        server.send(302);
+    });
+
+    // Form submission handler
     server.on("/submit", HTTP_POST, handleFormSubmit);
 
+    // Logs endpoint
     server.on("/logs", HTTP_GET, []() {
         File logFile = SPIFFS.open("/log.txt", "r");
         if (logFile) {
             server.streamFile(logFile, "text/plain");
             logFile.close();
         } else {
-            if (debugMode && verboseDebug) {
-                Serial.println("No logs found.");
-            }
             server.send(404, "text/plain", "No logs found.");
+        }
+    });
+
+    // Enhanced file upload handler with directory support
+    server.on("/upload", HTTP_POST, []() {
+        server.send(200, "application/json", "{\"success\":true}");
+    }, []() {
+        static File uploadFile;
+        HTTPUpload& upload = server.upload();
+        
+        if (upload.status == UPLOAD_FILE_START) {
+            String filename = upload.filename;
+            if (!filename.startsWith("/")) {
+                filename = "/" + filename;
+            }
+            
+            // Create directories if needed
+            int lastSlash = filename.lastIndexOf('/');
+            if (lastSlash > 0) {
+                String dirPath = filename.substring(0, lastSlash);
+                if (!SPIFFS.exists(dirPath)) {
+                    SPIFFS.mkdir(dirPath);
+                    if (debugMode && verboseDebug) {
+                        Serial.println("Created directory: " + dirPath);
+                    }
+                }
+            }
+            
+            uploadFile = SPIFFS.open(filename, "w");
+            if (!uploadFile) {
+                if (debugMode && verboseDebug) {
+                    Serial.println("Failed to create file: " + filename);
+                }
+                return;
+            }
+        } else if (upload.status == UPLOAD_FILE_WRITE) {
+            if (uploadFile) {
+                uploadFile.write(upload.buf, upload.currentSize);
+            }
+        } else if (upload.status == UPLOAD_FILE_END) {
+            if (uploadFile) {
+                uploadFile.close();
+                if (debugMode && verboseDebug) {
+                    Serial.println("File upload complete: " + upload.filename);
+                }
+            }
+        }
+    });
+
+    // File list handler
+    server.on("/files", HTTP_GET, []() {
+        File root = SPIFFS.open("/");
+        File file = root.openNextFile();
+        JsonDocument doc;
+        JsonArray files = doc.to<JsonArray>();
+        
+        while (file) {
+            if (!file.isDirectory()) {
+                JsonObject fileInfo = files.add<JsonObject>();
+                String fileName = String(file.name());
+                if (fileName.startsWith("/")) {
+                    fileName = fileName.substring(1);
+                }
+                fileInfo["name"] = fileName;
+                fileInfo["size"] = file.size();
+            }
+            file = root.openNextFile();
+        }
+        
+        String response;
+        serializeJson(doc, response);
+        server.send(200, "application/json", response);
+    });
+
+    // File delete handler
+    server.on("/deleteFile", HTTP_DELETE, []() {
+        // Check if we have a "filename" argument
+        if (!server.hasArg("filename")) {
+            server.send(400, "application/json", R"({"success":false,"error":"No filename argument"})");
+            return;
+        }
+        
+        // Grab the filename argument, e.g. "myFile.txt"
+        String fileArg = server.arg("filename");
+        // Convert it to an absolute path, e.g. "/myFile.txt"
+        String filePath = "/" + fileArg;
+        
+        // Attempt to delete from SPIFFS
+        if (SPIFFS.remove(filePath)) {
+            server.send(200, "application/json", R"({"success":true})");
+            if (debugMode && verboseDebug) {
+                Serial.println("Deleted file: " + filePath);
+            }
+        } else {
+            server.send(404, "application/json", R"({"success":false})");
+            if (debugMode && verboseDebug) {
+                Serial.println("Failed to delete file: " + filePath);
+            }
+        }
+    });
+
+
+    // Command handler
+    server.on("/command/{command}", HTTP_POST, []() {
+        String command = server.pathArg(0);
+        String message = "Command executed: " + command;
+        
+        // Add actual command handling logic here
+        // For now just return success
+        server.send(200, "application/json", "{\"message\":\"" + message + "\"}");
+        
+        if (debugMode && verboseDebug) {
+            Serial.println(message);
         }
     });
 
